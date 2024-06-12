@@ -50,22 +50,28 @@ def gated_connections_graph(model, thresh=1e-8):
     return graph
 
 
-def render_sparse_nn(g):
+def render_sparse_nn(g, prune=True):
     layers = list(set([it.split("_")[0] for it in sorted(g.nodes)]))
     out_features = len([it for it in g.nodes if it.startswith('output')])
+    in_features = len([it for it in g.nodes if it.startswith('input')])
     paths = []
     for t in range(out_features):
         target = f'output_{t}'
-        paths += list(nx.all_simple_paths(g, 'input_0', target))
-        for h in range(len([it for it in layers if it.startswith('hidden')])):
-            layer_nodes = [it for it in g.nodes if it.startswith(f'hidden{h + 1}')]
-            for ln in layer_nodes:
-                paths += nx.all_simple_paths(g, ln, target)
+        for s in range(in_features):
+            source = f'input_{s}'
+            paths += list(nx.all_simple_paths(g, source, target))
+            for h in range(len([it for it in layers if it.startswith('hidden')])):
+                layer_nodes = [it for it in g.nodes if it.startswith(f'hidden{h + 1}')]
+                for ln in layer_nodes:
+                    paths += nx.all_simple_paths(g, ln, target)
 
-    valid_nodes = []
-    for p in paths:
-        valid_nodes += p
-    valid_nodes = sorted(set(valid_nodes))
+    if prune:
+        valid_nodes = []
+        for p in paths:
+            valid_nodes += p
+        valid_nodes = sorted(set(valid_nodes))
+    else:
+        valid_nodes = sorted(set(g.nodes))
 
     height = {node: [] for node in valid_nodes}
     for n in valid_nodes:
