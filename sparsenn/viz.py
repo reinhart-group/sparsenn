@@ -50,7 +50,7 @@ def gated_connections_graph(model, thresh=1e-8):
     return graph
 
 
-def render_sparse_nn(g, prune=True):
+def find_paths_nodes(g, prune=True):
     layers = list(set([it.split("_")[0] for it in sorted(g.nodes)]))
     out_features = len([it for it in g.nodes if it.startswith('output')])
     in_features = len([it for it in g.nodes if it.startswith('input')])
@@ -72,6 +72,13 @@ def render_sparse_nn(g, prune=True):
         valid_nodes = sorted(set(valid_nodes))
     else:
         valid_nodes = sorted(set(g.nodes))
+
+    return paths, valid_nodes
+
+
+def render_sparse_nn(g, prune=True):
+    layers = list(set([it.split("_")[0] for it in sorted(g.nodes)]))
+    paths, valid_nodes = find_paths_nodes(g, prune)
 
     height = {node: [] for node in valid_nodes}
     for n in valid_nodes:
