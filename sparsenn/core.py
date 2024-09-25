@@ -108,6 +108,32 @@ class RegularizedMLP(nn.Module):
         return reg_loss
 
 
+class RegularizedMLPwithSkips(RegularizedMLP):
+    def __init__(self, input_dim, hidden_dims, output_dim, activation=F.relu, gamma=-0.1, zeta=1.1, beta=2 / 3):
+        super().__init__(input_dim, hidden_dims, output_dim, activation=F.relu, gamma=gamma, zeta=zeta, beta=beta)
+        self.input_dim = input_dim
+        self.hidden_dims = hidden_dims
+        self.output_dim = output_dim
+        self.activation = activation
+        self.gamma = gamma
+        self.zeta = zeta
+        self.beta = beta
+
+        self.layers = nn.ModuleList()
+        self.layers.append(self.create_linear_layer(input_dim, hidden_dims[0]))
+        for i in range(1, len(hidden_dims)):
+            self.layers.append(self.create_linear_layer(input_dim + hidden_dims[i - 1], hidden_dims[i]))
+        self.layers.append(self.create_linear_layer(input_dim + hidden_dims[-1], output_dim))
+
+    def forward(self, x):
+        input = x
+        x = self.activation(self.layers[0](x))
+        for i, layer in enumerate(self.layers[1:-1]):
+            x = self.activation(layer(torch.cat([input, x], dim=1)))
+        x = self.layers[-1](torch.cat([input, x], dim=1))
+        return x
+
+
 class MonotonicRegularizedMLP(RegularizedMLP):
     def __init__(self, input_dim, hidden_dims, output_dim, gamma=-0.1, zeta=1.1, beta=2 / 3):
         super(MonotonicRegularizedMLP, self).__init__(input_dim, hidden_dims, output_dim, activation=F.relu, gamma=gamma, zeta=zeta, beta=beta)
