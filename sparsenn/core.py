@@ -4,6 +4,23 @@ import torch.nn.functional as F
 import math
 
 
+class MultiTaskMSELoss(nn.Module):
+    def __init__(self, reduction='mean'):
+        super().__init__()
+        if reduction not in ['mean', 'sum', 'none']:
+            raise ValueError('Invalid reduction method')
+        self.reduction = reduction
+
+    def forward(self, input, target):
+        # Mask out the NaN values in the targets
+        mask = ~torch.isnan(target)
+
+        # Compute the mean squared error, ignoring NaN values
+        mse = F.mse_loss(input[mask], target[mask], reduction=self.reduction)
+
+        return mse
+
+
 class L0Linear(nn.Module):
     def __init__(self, in_features, out_features, gamma, zeta, beta, bias=True):
         super(L0Linear, self).__init__()
